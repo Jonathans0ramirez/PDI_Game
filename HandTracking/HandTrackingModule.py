@@ -69,14 +69,15 @@ class HandDetector:
                 self.landmark_list.append([index, cx, cy])
                 if draw:
                     if index in [4, 8, 12, 16, 20]:
-                        cv2.circle(image, (cx, cy), 7, (255, 0, 255), cv2.FILLED)
+                        cv2.circle(image, (cx, cy), 7, (133, 21, 199), cv2.FILLED)
 
             x_minimum, x_maximum = min(x_list), max(x_list)
             y_minimum, y_maximum = min(y_list), max(y_list)
             bbox = x_minimum, y_minimum, x_maximum, y_maximum
 
             if draw:
-                cv2.rectangle(image, (x_minimum - 20, y_minimum - 20), (x_maximum + 20, y_maximum + 20), (0, 255, 0), 2)
+                cv2.rectangle(image, (x_minimum - 20, y_minimum - 20), (x_maximum + 20, y_maximum + 20),
+                              (140, 180, 210), 2)
 
         return self.landmark_list, bbox
 
