@@ -38,6 +38,7 @@ while cap.isOpened():
 
         if distance > 50:
             print(distance)
+            cv2.circle(image, (cx, cy), 8, (0, 160, 255), cv2.FILLED)
 
     end = time.time()
     totalTime = end - start
