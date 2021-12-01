@@ -8,6 +8,7 @@ opencv-python = "*"
 numpy = "*"
 mediapipe = "*"
 imutils = "*"
+bbox = "*"
 
 [dev-packages]
 
