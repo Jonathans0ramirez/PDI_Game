@@ -1,7 +1,5 @@
 import cv2
-import math
 import time
-import numpy as np
 import HandTracking.HandTrackingModule as Htm
 
 wCam, hCam = 640, 480
@@ -15,30 +13,31 @@ detector = Htm.HandDetector(detection_confidence=0.7)
 
 while cap.isOpened():
 
-    _, image = cap.read()
+    success, image = cap.read()
+
+    if not success:
+        print("Ignoring empty camera frame.")
+        # If loading a video, use 'break' instead of 'continue'.
+        continue
 
     start = time.time()
 
     image = detector.find_hands(image)
-    lmList = detector.find_position(image, draw=False)
+    landmark_list, bbox = detector.find_position(image, draw=False)
 
-    if len(lmList) != 0:
-        # print(lmList)
+    if len(landmark_list) != 0:
+        # print(landmark_list)
+        area = (bbox[2] - bbox[0]) * (bbox[3] - bbox[1]) // 100
+        print(area)
 
-        x1, y1 = lmList[4][1], lmList[4][2]
-        x2, y2 = lmList[8][1], lmList[8][2]
-        cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
+        if 150 < area < 1080:
+            distance, image, line_info = detector.find_distance(4, 8, image)
 
-        cv2.circle(image, (x1, y1), 8, (255, 0, 255), cv2.FILLED)
-        cv2.circle(image, (x2, y2), 8, (255, 0, 255), cv2.FILLED)
-        cv2.line(image, (x1, y1), (x2, y2), (255, 0, 255), 3, cv2.LINE_AA)
-        cv2.circle(image, (cx, cy), 8, (255, 0, 255), cv2.FILLED)
+            cv2.rectangle(image, (bbox[0] - 20, bbox[1] - 20), (bbox[2] + 20, bbox[3] + 20), (140, 180, 210), 2)
 
-        distance = math.hypot(x2 - x1, y2 - y1)
-
-        if distance > 50:
-            print(distance)
-            cv2.circle(image, (cx, cy), 8, (0, 160, 255), cv2.FILLED)
+            if distance > 50:
+                # print(distance)
+                cv2.circle(image, (line_info[4], line_info[5]), 8, (0, 160, 255), cv2.FILLED)
 
     end = time.time()
     totalTime = end - start

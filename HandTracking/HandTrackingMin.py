@@ -8,9 +8,8 @@ mp_drawing = mp.solutions.drawing_utils
 cap = cv2.VideoCapture(0)
 
 with mp_hands.Hands(
-    min_detection_confidence=0.5,
-    min_tracking_confidence=0.5) as hands:
-
+        min_detection_confidence=0.5,
+        min_tracking_confidence=0.5) as hands:
     while cap.isOpened():
 
         success, image = cap.read()
@@ -47,13 +46,12 @@ with mp_hands.Hands(
 
                 mp_drawing.draw_landmarks(image, hand_Landmarks, mp_hands.HAND_CONNECTIONS)
 
-
         end = time.time()
         totalTime = end - start
 
-        fps = 1/totalTime
+        fps = 1 / totalTime
 
-        cv2.putText(image, str(int(fps)), (10,30), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 255, 166))
+        cv2.putText(image, str(int(fps)), (10, 30), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 255, 166))
 
         cv2.imshow("MediaPipe Hands", image)
 
