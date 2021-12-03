@@ -100,19 +100,19 @@ class HandDetector:
 
         return finger_list
 
-    def find_distance(self, p1, p2, image, draw=True, r=15, t=3):
+    def find_distance(self, p1, p2, image, draw=True, radius=8, thickness=3):
         x1, y1 = self.landmark_list[p1][1:]
         x2, y2 = self.landmark_list[p2][1:]
-        cx, cy = (x1 + x2) // (y1 + y2) // 2
+        cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
 
         if draw:
-            cv2.line(image, (x1, y1), (x2, y2), (255, 0, 255), t)
-            cv2.circle(image, (x1, y1), r, (255, 0, 255), cv2.FILLED)
-            cv2.circle(image, (x2, y2), r, (255, 0, 255), cv2.FILLED)
-            cv2.circle(image, (cx, cy), r, (255, 0, 255), cv2.FILLED)
-        length = math.hypot(x2 - x1, y2 - y1)
+            cv2.line(image, (x1, y1), (x2, y2), (255, 0, 255), thickness, cv2.LINE_AA)
+            cv2.circle(image, (x1, y1), radius, (255, 0, 255), cv2.FILLED)
+            cv2.circle(image, (x2, y2), radius, (255, 0, 255), cv2.FILLED)
+            cv2.circle(image, (cx, cy), radius, (255, 0, 255), cv2.FILLED)
+        distance = math.hypot(x2 - x1, y2 - y1)
 
-        return length, image, [x1, x2, x2, y2, cx, cy]
+        return distance, image, [x1, x2, x2, y2, cx, cy]
 
 
 def main():
