@@ -7,9 +7,8 @@ wCam, hCam = 640, 480
 cap = cv2.VideoCapture(0)
 cap.set(3, wCam)
 cap.set(4, hCam)
-pTime = 0
 
-detector = Htm.HandDetector(detection_confidence=0.7)
+detector = Htm.HandDetector(max_hands=1)
 
 while cap.isOpened():
 
@@ -23,21 +22,22 @@ while cap.isOpened():
     start = time.time()
 
     image = detector.find_hands(image)
-    landmark_list, bbox = detector.find_position(image, draw=False)
+    landmark_list, bbox = detector.find_position(image, draw=True)
 
     if len(landmark_list) != 0:
-        # print(landmark_list)
+        fingers = detector.fingers_up()
+        print(fingers)
         area = (bbox[2] - bbox[0]) * (bbox[3] - bbox[1]) // 100
-        print(area)
 
         if 150 < area < 1080:
             distance, image, line_info = detector.find_distance(4, 8, image)
-
-            cv2.rectangle(image, (bbox[0] - 20, bbox[1] - 20), (bbox[2] + 20, bbox[3] + 20), (140, 180, 210), 2)
-
-            if distance > 50:
-                # print(distance)
+            if distance > 70:
+                cv2.circle(image, (line_info[4], line_info[5]), 8, (0, 255, 160), cv2.FILLED)
+            elif distance > 40:
                 cv2.circle(image, (line_info[4], line_info[5]), 8, (0, 160, 255), cv2.FILLED)
+            else:
+                cv2.circle(image, (line_info[4], line_info[5]), 8, (255, 160, 0), cv2.FILLED)
+                # time.sleep(0.10)
 
     end = time.time()
     totalTime = end - start
