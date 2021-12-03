@@ -84,7 +84,7 @@ class HandDetector:
     def fingers_up(self):
         finger_list = []
         # Thumb
-        if self.landmark_list[self.tip_index[0][1]] > self.landmark_list[self.tip_index[0] - 1][1]:
+        if self.landmark_list[self.tip_index[0]][1] > self.landmark_list[self.tip_index[0] - 1][1]:
             finger_list.append(1)
         else:
             finger_list.append(0)
