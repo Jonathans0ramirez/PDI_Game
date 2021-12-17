@@ -2,7 +2,7 @@ import pygame
 
 
 class Blue(pygame.sprite.Sprite):
-    def __init__(self, pos_x=50, pos_y=150):
+    def __init__(self, pos_x=300, pos_y=400):
         super().__init__()
         self.blue = (0, 0, 100)
         self.blue_light = (0, 0, 255)
