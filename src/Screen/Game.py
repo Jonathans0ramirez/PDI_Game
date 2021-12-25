@@ -33,6 +33,7 @@ class Game:
         self.sound_green = pygame.mixer.Sound("resources/Audio/green.ogg")
         self.sound_red = pygame.mixer.Sound("resources/Audio/red.ogg")
         self.sound_yellow = pygame.mixer.Sound("resources/Audio/yellow.ogg")
+        self.sound_lose = pygame.mixer.Sound("resources/Audio/lose_sfx.wav")
         # Font
         self.gameplay_font_dir = 'resources/Fonts/Gameplay.ttf'
         self.font = pygame.font.Font(self.gameplay_font_dir, 20)
@@ -73,9 +74,15 @@ class Game:
         self.pattern_copy = []
         self.player_pattern = []
         self.score = 0
+        self.player_pattern_is_good = True
         self.playing_pattern = False
         self.add_new_pattern = True
-        self.sayit = True
+        self.show_new_pattern = True
+
+    def check_pattern(self):
+        if self.player_pattern != self.pattern[:len(self.player_pattern)]:
+            return False
+        return True
 
     def pause_program(self):
         self.limiter += 1
@@ -100,9 +107,12 @@ class Game:
         self.moving_sprites.draw(self.screen)
         score_text = self.font.render('Score: ' + str(self.score), True, (255, 255, 255))
         self.screen.blit(score_text, (450, 50))
+
+        # Recalculate paused flag
         if self.paused:
             self.paused = self.pause_program()
 
+        # Clean channels and color blocks
         if not self.channel_blue.get_busy():
             self.blue.change_color(False)
             self.channel_blue.stop()
@@ -116,17 +126,25 @@ class Game:
             self.yellow.change_color(False)
             self.channel_yellow.stop()
 
+        # Restart variables for new pattern and flag for losing screen
+        if not self.paused and not self.player_pattern_is_good:
+            print("You've failed")
+            return False
+        elif len(self.pattern) == len(self.player_pattern):
+            self.player_pattern = []
+            self.add_new_pattern = True
+
         # Generate a new color for the pattern
         if self.add_new_pattern and len(self.pattern_copy) == 0 and not self.paused:
             self.score = len(self.pattern)
             self.pattern.append(random.randint(1, 4))
             print(self.pattern)
             self.pattern_copy = self.pattern.copy()
-            # self.add_new_pattern = False
-            self.sayit = False if self.paused else True
+            self.add_new_pattern = False
+            self.show_new_pattern = False if self.paused else True
 
         # Color and sound blocks
-        if self.sayit and len(self.pattern_copy) != 0 and not self.paused:  # len of player and patter are different
+        if self.show_new_pattern and len(self.pattern_copy) != 0 and not self.paused:  # len of player and patter are different
             number_color = self.pattern_copy[0]
             # Set a limit for the pause_program based on the pattern length
             self.limit = 20 - 1 * int(len(self.pattern) / 4)
@@ -163,9 +181,9 @@ class Game:
             self.pattern_copy.pop(0)
             if len(self.pattern_copy) == 0:
                 self.limiter = 0
-                self.limit = 60
+                self.limit = 15
                 self.paused = self.pause_program()
-                self.sayit = False
+                self.show_new_pattern = False
 
         if len(self.landmark_list) != 0:
             self.fingers = self.detector.fingers_up()
@@ -188,35 +206,62 @@ class Game:
                     cv2.circle(self.image, (line_info[4], line_info[5]), 8, (0, 160, 255), cv2.FILLED)
                 elif not self.paused:
                     cv2.circle(self.image, (line_info[4], line_info[5]), 8, (255, 160, 0), cv2.FILLED)
+
+                    #     GREEN
                     if 50 < x_relative < 300 and 150 < y_relative < 400:
                         self.limit = 20
                         self.paused = self.pause_program()
                         self.green.change_color(True)
-                        if not self.channel_green.get_busy():
-                            self.channel_green.play(self.sound_green)
+                        self.player_pattern.append(1)
+                        self.player_pattern_is_good = self.check_pattern()
+                        if self.player_pattern_is_good:
+                            if not self.channel_green.get_busy():
+                                self.channel_green.play(self.sound_green)
+                        else:
+                            if not self.channel_green.get_busy():
+                                self.channel_green.play(self.sound_lose)
 
-                    #     GREEN
+                    #     RED
                     elif 300 < x_relative < 550 and 150 < y_relative < 400:
                         self.limit = 20
                         self.paused = self.pause_program()
                         self.red.change_color(True)
-                        if not self.channel_red.get_busy():
-                            self.channel_red.play(self.sound_red)
-                    #     RED
+                        self.player_pattern.append(2)
+                        self.player_pattern_is_good = self.check_pattern()
+                        if self.player_pattern_is_good:
+                            if not self.channel_red.get_busy():
+                                self.channel_red.play(self.sound_red)
+                        else:
+                            if not self.channel_red.get_busy():
+                                self.channel_red.play(self.sound_lose)
+
+                    #     YELLOW
                     elif 50 < x_relative < 300 and 400 < y_relative < 650:
                         self.limit = 20
                         self.paused = self.pause_program()
                         self.yellow.change_color(True)
-                        if not self.channel_yellow.get_busy():
-                            self.channel_yellow.play(self.sound_yellow)
-                    #     YELLOW
+                        self.player_pattern.append(3)
+                        self.player_pattern_is_good = self.check_pattern()
+                        if self.player_pattern_is_good:
+                            if not self.channel_yellow.get_busy():
+                                self.channel_yellow.play(self.sound_yellow)
+                        else:
+                            if not self.channel_yellow.get_busy():
+                                self.channel_yellow.play(self.sound_lose)
+
+                    #     BLUE
                     elif 300 < x_relative < 550 and 400 < y_relative < 650:
                         self.limit = 20
                         self.paused = self.pause_program()
                         self.blue.change_color(True)
-                        if not self.channel_blue.get_busy():
-                            self.channel_blue.play(self.sound_blue)
-                    #     BLUE
+                        self.player_pattern.append(4)
+                        self.player_pattern_is_good = self.check_pattern()
+                        if self.player_pattern_is_good:
+                            if not self.channel_blue.get_busy():
+                                self.channel_blue.play(self.sound_blue)
+                        else:
+                            if not self.channel_blue.get_busy():
+                                self.channel_blue.play(self.sound_lose)
 
                     # print(f"x_relative: {x_relative}; y_relative: {y_relative}")
 
