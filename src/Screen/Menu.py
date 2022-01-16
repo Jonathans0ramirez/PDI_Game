@@ -4,10 +4,12 @@ import cv2
 import numpy as np
 import pygame
 
+from src.Enums.ApplicationState import ApplicationState
 from src.HandTracking.HandTrackingModule import HandDetector
 from src.Sprites.Menu.Logo import Logo
 from src.Sprites.Menu.Start import Start
 from src.Sprites.Menu.Title import Title
+from src.Utils.CollisionUtility import collision_box_check
 
 
 class Menu:
@@ -67,7 +69,7 @@ class Menu:
         if not success:
             print("Ignoring empty camera frame.")
             # If loading a video, use 'break' instead of 'continue'.
-            return True
+            return ApplicationState.BREAK
 
         self.start = time.time()
 
@@ -99,7 +101,8 @@ class Menu:
                     cv2.circle(self.image, (line_info[4], line_info[5]), 8, (0, 160, 255), cv2.FILLED)
                 else:
                     cv2.circle(self.image, (line_info[4], line_info[5]), 8, (255, 160, 0), cv2.FILLED)
-                    if 180 <= x_relative <= 420 and 530 <= y_relative <= 620 and not self.paused:
+                    if collision_box_check(self.start_sprite.rect.topleft, self.start_sprite.rect.size,
+                                           (x_relative, y_relative)) and not self.paused:
                         self.paused = self.pause_program()
                         self.running = False
 
@@ -118,7 +121,7 @@ class Menu:
         cv2.imshow("MediaPipe Hands", self.image)
 
         if cv2.waitKey(5) & 0xFF == 27:
-            return False
+            return ApplicationState.STOP
         if not self.running:
-            return False
-        return True
+            return ApplicationState.BREAK
+        return ApplicationState.RUNNING

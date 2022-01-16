@@ -5,11 +5,14 @@ import cv2
 import numpy as np
 import pygame
 
+from src.Enums.ApplicationState import ApplicationState
 from src.HandTracking.HandTrackingModule import HandDetector
 from src.Sprites.Game.Blue import Blue
 from src.Sprites.Game.Green import Green
 from src.Sprites.Game.Red import Red
 from src.Sprites.Game.Yellow import Yellow
+
+from src.Utils.CollisionUtility import collision_box_check
 
 
 class Game:
@@ -64,8 +67,6 @@ class Game:
         self.paused = False
         self.limiter = 0
         self.limit = 20
-        # For breaking module
-        self.running = True
         # Creating the sprites and groups
         self.moving_sprites = pygame.sprite.Group()
         self.moving_sprites.add(self.blue, self.red, self.green, self.yellow)
@@ -97,7 +98,7 @@ class Game:
         if not success:
             print("Ignoring empty camera frame.")
             # If loading a video, use 'break' instead of 'continue'.
-            return True
+            return ApplicationState.BREAK
 
         self.start = time.time()
 
@@ -106,7 +107,8 @@ class Game:
         self.screen.fill((0, 0, 0))
         self.moving_sprites.draw(self.screen)
         score_text = self.font.render('Score: ' + str(self.score), True, (255, 255, 255))
-        self.screen.blit(score_text, (450, 50))
+        text_width, _ = score_text.get_size()
+        self.screen.blit(score_text, (((self.wScreen // 2) - (text_width // 2)), 50))
 
         # Recalculate paused flag
         if self.paused:
@@ -129,7 +131,7 @@ class Game:
         # Restart variables for new pattern and flag for losing screen
         if not self.paused and not self.player_pattern_is_good:
             print("You've failed")
-            return False
+            return ApplicationState.BREAK
         elif len(self.pattern) == len(self.player_pattern):
             self.player_pattern = []
             self.add_new_pattern = True
@@ -144,7 +146,8 @@ class Game:
             self.show_new_pattern = False if self.paused else True
 
         # Color and sound blocks
-        if self.show_new_pattern and len(self.pattern_copy) != 0 and not self.paused:  # len of player and patter are different
+        if self.show_new_pattern and len(
+                self.pattern_copy) != 0 and not self.paused:  # len of player and patter are different
             number_color = self.pattern_copy[0]
             # Set a limit for the pause_program based on the pattern length
             self.limit = 20 - 1 * int(len(self.pattern) / 4)
@@ -208,7 +211,7 @@ class Game:
                     cv2.circle(self.image, (line_info[4], line_info[5]), 8, (255, 160, 0), cv2.FILLED)
 
                     #     GREEN
-                    if 50 < x_relative < 300 and 150 < y_relative < 400:
+                    if collision_box_check(self.green.rect.topleft, self.green.rect.size, (x_relative, y_relative)):
                         self.limit = 20
                         self.paused = self.pause_program()
                         self.green.change_color(True)
@@ -222,7 +225,7 @@ class Game:
                                 self.channel_green.play(self.sound_lose)
 
                     #     RED
-                    elif 300 < x_relative < 550 and 150 < y_relative < 400:
+                    elif collision_box_check(self.red.rect.topleft, self.red.rect.size, (x_relative, y_relative)):
                         self.limit = 20
                         self.paused = self.pause_program()
                         self.red.change_color(True)
@@ -236,7 +239,7 @@ class Game:
                                 self.channel_red.play(self.sound_lose)
 
                     #     YELLOW
-                    elif 50 < x_relative < 300 and 400 < y_relative < 650:
+                    elif collision_box_check(self.yellow.rect.topleft, self.yellow.rect.size, (x_relative, y_relative)):
                         self.limit = 20
                         self.paused = self.pause_program()
                         self.yellow.change_color(True)
@@ -250,7 +253,7 @@ class Game:
                                 self.channel_yellow.play(self.sound_lose)
 
                     #     BLUE
-                    elif 300 < x_relative < 550 and 400 < y_relative < 650:
+                    elif collision_box_check(self.blue.rect.topleft, self.blue.rect.size, (x_relative, y_relative)):
                         self.limit = 20
                         self.paused = self.pause_program()
                         self.blue.change_color(True)
@@ -278,7 +281,5 @@ class Game:
         cv2.imshow("MediaPipe Hands", self.image)
 
         if cv2.waitKey(5) & 0xFF == 27:
-            return False
-        if not self.running:
-            return False
-        return True
+            return ApplicationState.STOP
+        return ApplicationState.RUNNING
