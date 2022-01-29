@@ -76,7 +76,10 @@ class Menu:
         success, self.image = cap.read()
         # Flip the image horizontally for later selfie-view display
         self.image = cv2.flip(self.image, 1)
-        self.image, bitwise_color, _, x_medium, y_medium = self.blue.generate_contour(self.image)
+        self.image, blue_bitwise_color, _, x_medium, y_medium = self.blue.generate_contour(self.image)
+        self.image, red_bitwise_color, _, _, _ = self.red.generate_contour(self.image)
+        self.image, green_bitwise_color, _, _, _ = self.green.generate_contour(self.image)
+        self.image, yellow_bitwise_color, _, _, _ = self.yellow.generate_contour(self.image)
 
         if not success:
             print("Ignoring empty camera frame.")
@@ -123,7 +126,7 @@ class Menu:
         cv2.putText(self.image, str(int(fps)), (10, 30), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 255, 166))
 
         cv2.imshow("MediaPipe Hands", self.image)
-        cv2.imshow("Mask", bitwise_color)
+        cv2.imshow("Mask", blue_bitwise_color + red_bitwise_color + green_bitwise_color + yellow_bitwise_color)
 
         if cv2.waitKey(5) & 0xFF == 27:
             return ApplicationState.STOP
