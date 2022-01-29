@@ -67,6 +67,13 @@ def main():
                 ApplicationState.RUNNING
         elif interactor.in_game_over == ApplicationState.RUNNING:
             interactor.in_game_over = game_over.lose_screen(cap, interactor.score)
+            if interactor.in_game_over == ApplicationState.RESTART:
+                interactor.in_menu = ApplicationState.RUNNING
+                interactor.in_game = ApplicationState.BREAK
+                interactor.in_game_over = ApplicationState.BREAK
+                pygame.mixer.music.load('resources/Audio/Cyberpunk Moonlight Sonata v2.mp3')
+                pygame.mixer.music.play(loops=-1)
+                pygame.mixer.music.set_volume(1)
         if (interactor.in_menu == ApplicationState.STOP) or \
                 (interactor.in_game == ApplicationState.STOP) or \
                 (interactor.in_game_over == ApplicationState.STOP) or \
