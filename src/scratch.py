@@ -6,8 +6,16 @@ def nothing(x):
     pass
 
 
-# Load image
-image = cv2.imread('resources/Images/img.png')
+# Declare screen and cv dimensions
+wCam, hCam = 640, 480
+
+# Margin for better interactions with hand tracking module
+frame_margin = 70
+
+# Configure the camera and its dimensions
+cap = cv2.VideoCapture(0)
+cap.set(3, wCam)
+cap.set(4, hCam)
 
 # Create a window
 cv2.namedWindow('image')
@@ -42,6 +50,8 @@ while (1):
     # Set minimum and maximum HSV values to display
     lower = np.array([hMin, sMin, vMin])
     upper = np.array([hMax, sMax, vMax])
+
+    success, image = cap.read()
 
     # Convert to HSV format and color threshold
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
