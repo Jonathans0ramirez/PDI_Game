@@ -5,7 +5,9 @@ import cv2
 import numpy as np
 import pygame
 
+from src.ColorProcessing.ColorProcessingModule import ColorProcessingModule
 from src.Enums.ApplicationState import ApplicationState
+from src.Enums.ColorValues import ColorValues
 from src.HandTracking.HandTrackingModule import HandDetector
 from src.Sprites.Game.Blue import Blue
 from src.Sprites.Game.Green import Green
@@ -16,7 +18,7 @@ from src.Utils.CollisionUtility import collision_box_check
 
 
 class Game:
-    def __init__(self, cam_width=640, cam_height=480, screen_width=1024, screen_height=683, max_hands=1,
+    def __init__(self, cam_width=640, cam_height=480, screen_width=600, screen_height=683, max_hands=1,
                  cursor=pygame.mouse):
         # Declare screen and cv dimensions
         self.wCam = cam_width
@@ -36,7 +38,7 @@ class Game:
         self.sound_green = pygame.mixer.Sound("resources/Audio/green.ogg")
         self.sound_red = pygame.mixer.Sound("resources/Audio/red.ogg")
         self.sound_yellow = pygame.mixer.Sound("resources/Audio/yellow.ogg")
-        self.sound_lose = pygame.mixer.Sound("resources/Audio/lose_sfx.wav")
+        self.sound_lose = pygame.mixer.Sound("resources/Audio/error.wav")
         # Font
         self.gameplay_font_dir = 'resources/Fonts/Gameplay.ttf'
         self.font = pygame.font.Font(self.gameplay_font_dir, 20)
@@ -59,6 +61,9 @@ class Game:
         self.clock = pygame.time.Clock()
         # Cursor from pygame to access the functions of it
         self.cursor = cursor
+        # Variables for cursor position
+        self.x_relative = self.wScreen / 2
+        self.y_relative = self.hScreen / 2
         # For fps information
         self.start = 0
         self.end = 0
@@ -79,6 +84,11 @@ class Game:
         self.playing_pattern = False
         self.add_new_pattern = True
         self.show_new_pattern = True
+        # Color processing
+        self.green_processing = ColorProcessingModule(ColorValues.LOW_GREEN.value, ColorValues.HIGH_GREEN.value)
+        self.red_processing = ColorProcessingModule(ColorValues.LOW_RED.value, ColorValues.HIGH_RED.value)
+        self.yellow_processing = ColorProcessingModule(ColorValues.LOW_YELLOW.value, ColorValues.HIGH_YELLOW.value)
+        self.blue_processing = ColorProcessingModule(ColorValues.LOW_BLUE.value, ColorValues.HIGH_BLUE.value)
 
     def check_pattern(self):
         if self.player_pattern != self.pattern[:len(self.player_pattern)]:
@@ -94,11 +104,20 @@ class Game:
 
     def start_game(self, cap):
         success, self.image = cap.read()
+        # Flip the image horizontally for later selfie-view display
+        self.image = cv2.flip(self.image, 1)
+        self.image, bitwise_color, _, x_medium, y_medium = self.blue_processing.generate_contour(self.image)
 
         if not success:
             print("Ignoring empty camera frame.")
             # If loading a video, use 'break' instead of 'continue'.
-            return ApplicationState.BREAK
+            return ApplicationState.MUSIC_BREAK, 0
+
+        self.x_relative = np.interp(x_medium, (self.frame_margin, self.wCam - self.frame_margin),
+                                    (0, self.wScreen - 10))
+        self.y_relative = np.interp(y_medium, (self.frame_margin, self.hCam - self.frame_margin),
+                                    (0, self.hScreen - 10))
+        self.cursor.set_pos((self.x_relative, self.y_relative))
 
         self.start = time.time()
 
@@ -131,7 +150,17 @@ class Game:
         # Restart variables for new pattern and flag for losing screen
         if not self.paused and not self.player_pattern_is_good:
             print("You've failed")
-            return ApplicationState.BREAK
+            score_return = self.score
+            # Restart variables for next execution
+            self.pattern = []
+            self.pattern_copy = []
+            self.player_pattern = []
+            self.score = 0
+            self.player_pattern_is_good = True
+            self.playing_pattern = False
+            self.add_new_pattern = True
+            self.show_new_pattern = True
+            return ApplicationState.MUSIC_BREAK, score_return
         elif len(self.pattern) == len(self.player_pattern):
             self.player_pattern = []
             self.add_new_pattern = True
@@ -189,29 +218,17 @@ class Game:
                 self.show_new_pattern = False
 
         if len(self.landmark_list) != 0:
-            self.fingers = self.detector.fingers_up()
-            # print(self.fingers)
             area = (self.bbox[2] - self.bbox[0]) * (self.bbox[3] - self.bbox[1]) // 100
 
             cv2.rectangle(self.image, (self.frame_margin, self.frame_margin),
                           (self.wCam - self.frame_margin, self.hCam - self.frame_margin), (255, 0, 255), 2)
 
             if 150 < area < 1080:
-                distance, self.image, line_info = self.detector.find_distance(4, 8, self.image)
-                x_relative = np.interp(line_info[4], (self.frame_margin, self.wCam - self.frame_margin),
-                                       (0, self.wScreen - 10))
-                y_relative = np.interp(line_info[5], (self.frame_margin, self.hCam - self.frame_margin),
-                                       (0, self.hScreen - 10))
-                self.cursor.set_pos((x_relative, y_relative))
-                if distance > 70:
-                    cv2.circle(self.image, (line_info[4], line_info[5]), 8, (0, 255, 160), cv2.FILLED)
-                elif distance > 40:
-                    cv2.circle(self.image, (line_info[4], line_info[5]), 8, (0, 160, 255), cv2.FILLED)
-                elif not self.paused:
-                    cv2.circle(self.image, (line_info[4], line_info[5]), 8, (255, 160, 0), cv2.FILLED)
-
+                self.fingers = self.detector.fingers_up()
+                if not self.paused and self.fingers[1] and self.fingers[2]:
                     #     GREEN
-                    if collision_box_check(self.green.rect.topleft, self.green.rect.size, (x_relative, y_relative)):
+                    if collision_box_check(self.green.rect.topleft, self.green.rect.size,
+                                           (self.x_relative, self.y_relative)):
                         self.limit = 20
                         self.paused = self.pause_program()
                         self.green.change_color(True)
@@ -225,7 +242,8 @@ class Game:
                                 self.channel_green.play(self.sound_lose)
 
                     #     RED
-                    elif collision_box_check(self.red.rect.topleft, self.red.rect.size, (x_relative, y_relative)):
+                    elif collision_box_check(self.red.rect.topleft, self.red.rect.size,
+                                             (self.x_relative, self.y_relative)):
                         self.limit = 20
                         self.paused = self.pause_program()
                         self.red.change_color(True)
@@ -239,7 +257,8 @@ class Game:
                                 self.channel_red.play(self.sound_lose)
 
                     #     YELLOW
-                    elif collision_box_check(self.yellow.rect.topleft, self.yellow.rect.size, (x_relative, y_relative)):
+                    elif collision_box_check(self.yellow.rect.topleft, self.yellow.rect.size,
+                                             (self.x_relative, self.y_relative)):
                         self.limit = 20
                         self.paused = self.pause_program()
                         self.yellow.change_color(True)
@@ -253,7 +272,8 @@ class Game:
                                 self.channel_yellow.play(self.sound_lose)
 
                     #     BLUE
-                    elif collision_box_check(self.blue.rect.topleft, self.blue.rect.size, (x_relative, y_relative)):
+                    elif collision_box_check(self.blue.rect.topleft, self.blue.rect.size,
+                                             (self.x_relative, self.y_relative)):
                         self.limit = 20
                         self.paused = self.pause_program()
                         self.blue.change_color(True)
@@ -279,7 +299,8 @@ class Game:
         cv2.putText(self.image, str(int(fps)), (10, 30), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 255, 166))
 
         cv2.imshow("MediaPipe Hands", self.image)
+        cv2.imshow("Mask", bitwise_color)
 
         if cv2.waitKey(5) & 0xFF == 27:
-            return ApplicationState.STOP
-        return ApplicationState.RUNNING
+            return ApplicationState.STOP, 0
+        return ApplicationState.RUNNING, self.score

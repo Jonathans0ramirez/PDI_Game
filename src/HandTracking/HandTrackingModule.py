@@ -21,9 +21,8 @@ class HandDetector:
         self.tip_index = [4, 8, 12, 16, 20]
 
     def find_hands(self, image, draw=True):
-        # Flip the image horizontally for later selfie-view display
         # Convert the BGR to RGB
-        image = cv2.cvtColor(cv2.flip(image, 1), cv2.COLOR_BGR2RGB)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
         # To improve performance, optionally mark the image as not writeable
         # Pass by reference
@@ -112,7 +111,7 @@ class HandDetector:
             cv2.circle(image, (cx, cy), radius, (255, 0, 255), cv2.FILLED)
         distance = math.hypot(x2 - x1, y2 - y1)
 
-        return distance, image, [x1, x2, x2, y2, cx, cy]
+        return distance, image, [x1, x2, y1, y2, cx, cy]
 
 
 def main():
