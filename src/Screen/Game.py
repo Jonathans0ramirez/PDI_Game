@@ -18,7 +18,7 @@ from src.Utils.CollisionUtility import collision_box_check, collision_circle_che
 
 
 class Game:
-    def __init__(self, cam_width=640, cam_height=480, screen_width=600, screen_height=683,  max_hands=1,
+    def __init__(self, cam_width=640, cam_height=480, screen_width=600, screen_height=683, max_hands=1,
                  cursor=pygame.mouse):
         # Declare screen and cv dimensions
         self.wCam = cam_width
@@ -255,7 +255,9 @@ class Game:
                 self.fingers = self.detector.fingers_up()
                 # If the cursor is inside the area of the circle with all the colors, continue
                 if not self.paused and self.fingers[1] and self.fingers[2] and collision_circle_check(
-                        (self.wScreen // 2, self.hScreen // 2), 295, (self.x_relative, self.y_relative)):
+                        (self.wScreen // 2, self.hScreen // 2), 295,
+                        (self.x_relative, self.y_relative)) and not collision_circle_check(
+                    (self.wScreen // 2, self.hScreen // 2), 75, (self.x_relative, self.y_relative)):
                     #     GREEN
                     if collision_box_check(self.green.relative_pos, self.green.size,
                                            (self.x_relative, self.y_relative)):
