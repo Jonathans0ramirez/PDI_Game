@@ -80,7 +80,7 @@ class Menu:
         # Get the contours of the blue color detected in the image captured
         self.image, blue_bitwise_color, _, x_medium, y_medium = self.blue.generate_contour(self.image)
         # Get the contours of extra colors for explanation purposes
-        self.image, red_bitwise_color, _, _, _ = self.red.generate_contour(self.image)
+        self.image, red_bitwise_color, red_mask, _, _ = self.red.generate_contour(self.image)
         self.image, green_bitwise_color, _, _, _ = self.green.generate_contour(self.image)
         self.image, yellow_bitwise_color, _, _, _ = self.yellow.generate_contour(self.image)
 
@@ -124,11 +124,16 @@ class Menu:
 
             # It is validated that the detected hand is close enough to avoid confusion
             if 150 < area < 1080:
+                # Fingers up detector is initialized
                 self.fingers = self.detector.fingers_up()
+                # If the cursor is inside the area of the start button and the index and middle fingers are up,
+                # the game starts
                 if collision_box_check(self.start_sprite.rect.topleft, self.start_sprite.rect.size,
                                        (self.x_relative, self.y_relative)) and not self.paused:
                     if self.fingers[1] and self.fingers[2]:
+                        # Creates a micro-pause to avoid double clicks
                         self.paused = self.pause_program()
+                        # Variable to stop this screen
                         self.running = False
 
         # End time captured for fps information
@@ -153,6 +158,7 @@ class Menu:
         cv2.imshow("MediaPipe Hands", self.image)
         cv2.imshow("Mask", blue_bitwise_color + red_bitwise_color + green_bitwise_color + yellow_bitwise_color)
 
+        # Stop the running application if esc is pressed int the cv2 frame
         if cv2.waitKey(5) & 0xFF == 27:
             return ApplicationState.STOP
         if not self.running:

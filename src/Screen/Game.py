@@ -18,7 +18,7 @@ from src.Utils.CollisionUtility import collision_box_check, collision_circle_che
 
 
 class Game:
-    def __init__(self, cam_width=640, cam_height=480, screen_width=600, screen_height=683, max_hands=1,
+    def __init__(self, cam_width=640, cam_height=480, screen_width=600, screen_height=683,  max_hands=1,
                  cursor=pygame.mouse):
         # Declare screen and cv dimensions
         self.wCam = cam_width
@@ -117,18 +117,26 @@ class Game:
             # If loading a video, use 'break' instead of 'continue'.
             return ApplicationState.MUSIC_BREAK, 0
 
+        # Assign the values of the center of the detected blue object to the cursor making an interpolation
+        # based on camera and screen size with the frame margin value
         self.x_relative = np.interp(x_medium, (self.frame_margin, self.wCam - self.frame_margin),
                                     (0, self.wScreen - 10))
         self.y_relative = np.interp(y_medium, (self.frame_margin, self.hCam - self.frame_margin),
                                     (0, self.hScreen - 10))
         self.cursor.set_pos((self.x_relative, self.y_relative))
 
+        # Start time captured for fps information
         self.start = time.time()
 
+        # Find and draws the lines and dots of the hand
         self.image = self.detector.find_hands(self.image, draw=True)
+        # Draw dots in fingers of the detected hand and returns the bbox enclosing the hand
         self.landmark_list, self.bbox = self.detector.find_position(self.image, draw=True)
+        # Refreshes the screen
         self.screen.fill((0, 0, 0))
         self.moving_sprites.draw(self.screen)
+
+        # Gets the player's current score, renders it and places it in the center of the screen
         score_text = self.font.render(str(self.score), True, (255, 255, 255))
         text_width, text_height = score_text.get_size()
         self.screen.blit(score_text,
@@ -138,7 +146,7 @@ class Game:
         if self.paused:
             self.paused = self.pause_program()
 
-        # Clean channels and color blocks
+        # Clean channels and restore color blocks in every iteration
         if not self.channel_blue.get_busy():
             self.blue.change_color(False)
             self.moving_sprites.change_layer(self.blue, 1)
@@ -156,7 +164,8 @@ class Game:
             self.moving_sprites.change_layer(self.yellow, 1)
             self.channel_yellow.stop()
 
-        # Restart variables for new pattern and flag for losing screen
+        # Indicates that the player lost. Restart variables for new pattern and
+        # returns the score result for losing screen
         if not self.paused and not self.player_pattern_is_good:
             print("You've failed")
             score_return = self.score
@@ -170,6 +179,7 @@ class Game:
             self.add_new_pattern = True
             self.show_new_pattern = True
             return ApplicationState.MUSIC_BREAK, score_return
+        # If the player has hit the pattern, a new color is generated in it
         elif len(self.pattern) == len(self.player_pattern):
             self.player_pattern = []
             self.add_new_pattern = True
@@ -183,10 +193,10 @@ class Game:
             self.add_new_pattern = False
             self.show_new_pattern = False if self.paused else True
 
-        # Color and sound blocks
-        if self.show_new_pattern and len(
-                self.pattern_copy) != 0 and not self.paused:  # len of player and patter are different
-            number_color = self.pattern_copy[0]
+        # Performs the effect for each color in the pattern and its corresponding sound is played
+        if self.show_new_pattern and len(self.pattern_copy) != 0 and not self.paused:
+            # As a stack, a color is selected
+            number_color = self.pattern_copy.pop(0)
             # Set a limit for the pause_program based on the pattern length
             self.limit = 20 - 1 * int(len(self.pattern) / 4)
             if self.limit <= 10:
@@ -223,21 +233,27 @@ class Game:
                 self.moving_sprites.change_layer(self.blue, 2)
                 self.channel_blue.play(self.sound_blue)
 
-            self.pattern_copy.pop(0)
+            # If the entire pattern has been displayed, this section is finished.
             if len(self.pattern_copy) == 0:
                 self.limiter = 0
                 self.limit = 15
                 self.paused = self.pause_program()
                 self.show_new_pattern = False
 
+        # Validates that at least one hand is on screen
         if len(self.landmark_list) != 0:
+            # Calculates the area of the box enclosing the hand
             area = (self.bbox[2] - self.bbox[0]) * (self.bbox[3] - self.bbox[1]) // 100
 
+            # Draw the rectangle that limits the area in which the cursor is allowed to move
             cv2.rectangle(self.image, (self.frame_margin, self.frame_margin),
                           (self.wCam - self.frame_margin, self.hCam - self.frame_margin), (255, 0, 255), 2)
 
+            # It is validated that the detected hand is close enough to avoid confusion
             if 150 < area < 1080:
+                # Fingers up detector is initialized
                 self.fingers = self.detector.fingers_up()
+                # If the cursor is inside the area of the circle with all the colors, continue
                 if not self.paused and self.fingers[1] and self.fingers[2] and collision_circle_check(
                         (self.wScreen // 2, self.hScreen // 2), 295, (self.x_relative, self.y_relative)):
                     #     GREEN
@@ -304,21 +320,29 @@ class Game:
                             if not self.channel_blue.get_busy():
                                 self.channel_blue.play(self.sound_lose)
 
-                    # print(f"x_relative: {x_relative}; y_relative: {y_relative}")
-
+        # End time captured for fps information
         self.end = time.time()
+        # Calculates the elapsed time
         self.total_time = self.end - self.start
 
+        # Calculates the value of fps
         fps = 1 / self.total_time
+
+        # Update sprites and screen display
         self.moving_sprites.update(0.25)
         pygame.display.flip()
+
+        # Limit the runtime speed of a game (60 fps maximum)
         self.clock.tick(60)
 
+        # Write fps value on camera frame / image
         cv2.putText(self.image, str(int(fps)), (10, 30), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 255, 166))
 
+        # Show the camera image and the mask
         cv2.imshow("MediaPipe Hands", self.image)
         cv2.imshow("Mask", bitwise_color)
 
+        # Stop the running application if esc is pressed int the cv2 frame
         if cv2.waitKey(5) & 0xFF == 27:
             return ApplicationState.STOP, 0
         return ApplicationState.RUNNING, self.score
