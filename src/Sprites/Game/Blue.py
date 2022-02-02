@@ -2,12 +2,13 @@ import pygame
 
 
 class Blue(pygame.sprite.Sprite):
-    def __init__(self, pos_x=300, pos_y=400):
+    def __init__(self, pos_x=0, pos_y=0, layer=1):
         super().__init__()
-        self.blue = (0, 0, 100)
-        self.blue_light = (0, 0, 255)
-        self.image = pygame.Surface([250, 250])
-        self.image.fill(self.blue)
+        self._layer = layer
+        self.relative_pos = (4, 348)
+        self.size = (289, 289)
+        self.image = pygame.image.load('resources/Images/blue.png')
+
         self.rect = self.image.get_rect()
         self.rect.topleft = [pos_x, pos_y]
         self.color_animation = None
@@ -17,7 +18,9 @@ class Blue(pygame.sprite.Sprite):
 
     def update(self, *args):
         if self.color_animation:
-            self.image.fill(self.blue_light)
+            self.image = pygame.image.load('resources/Images/blue_light.png')
+            self._layer = 2
         else:
-            self.image.fill(self.blue)
+            self.image = pygame.image.load('resources/Images/blue.png')
+            self._layer = 1
 
