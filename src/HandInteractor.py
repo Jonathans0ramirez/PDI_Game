@@ -39,7 +39,7 @@ def main():
     pygame.mixer.music.load('resources/Audio/Cyberpunk Moonlight Sonata v2.mp3')
     # Window information
     pygame.display.set_icon(interactor.logo_sprite.logo)
-    pygame.display.set_caption("Joty says")
+    pygame.display.set_caption("The game says")
     # Customizing the cursor
     interactor.cursor.set_cursor(pygame.SYSTEM_CURSOR_HAND)
     # Game and Menu setups

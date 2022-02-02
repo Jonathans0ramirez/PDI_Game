@@ -23,16 +23,16 @@ class GameOver:
         self.hCam = cam_height
         self.wScreen = screen_width
         self.hScreen = screen_height
-        # Margin for better interactions with hand tracking module
+        # Margin for better interactions with hand tracking module and color processing module
         self.frame_margin = 70
         # Image from camera source
         self.image = None
-        # Creating the sprites
+        # Font file loading and size
         self.gameplay_font_dir = 'resources/Fonts/Gameplay.ttf'
         self.title_font = pygame.font.Font(self.gameplay_font_dir, 50)
+        # Creating the necessary sprites
         self.title_sprite = Title(161.5, 50)
         self.score_sprite = Score(600, 120)
-        # self.score_sprite = Score()
         self.again_sprite = Again(180, 300)
         self.exit_sprite = Exit(180, 450)
         # Create an instance of the hand tracking module
@@ -51,7 +51,7 @@ class GameOver:
         self.total_time = 0
         # Cursor from pygame to access the functions of it
         self.cursor = cursor
-        # Variables for cursor position
+        # Variables for cursor position (Init at center of the screen)n
         self.x_relative = self.wScreen / 2
         self.y_relative = self.hScreen / 2
         # Flag for pausing purposes
@@ -59,15 +59,16 @@ class GameOver:
         self.limiter = 0
         # For breaking module
         self.running = True
-        # Sprite group
+        # Creating the sprites and grouped by layers to better display the images
         self.moving_sprites = pygame.sprite.Group()
         self.moving_sprites.add(self.title_sprite, self.score_sprite, self.again_sprite, self.exit_sprite)
-        # Color processing
+        # Color processing module variables for each color
         self.green = ColorProcessingModule(ColorValues.LOW_GREEN.value, ColorValues.HIGH_GREEN.value)
         self.red = ColorProcessingModule(ColorValues.LOW_RED.value, ColorValues.HIGH_RED.value)
         self.yellow = ColorProcessingModule(ColorValues.LOW_YELLOW.value, ColorValues.HIGH_YELLOW.value)
         self.blue = ColorProcessingModule(ColorValues.LOW_BLUE.value, ColorValues.HIGH_BLUE.value)
 
+    # Function to handle pauses needed by the game without the need to block the main thread
     def pause_program(self, limit=10):
         self.limiter += 1
         if self.limiter == limit:

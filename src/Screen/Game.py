@@ -14,7 +14,7 @@ from src.Sprites.Game.Green import Green
 from src.Sprites.Game.Red import Red
 from src.Sprites.Game.Yellow import Yellow
 
-from src.Utils.CollisionUtility import collision_box_check
+from src.Utils.CollisionUtility import collision_box_check, collision_circle_check
 
 
 class Game:
@@ -25,7 +25,7 @@ class Game:
         self.hCam = cam_height
         self.wScreen = screen_width
         self.hScreen = screen_height
-        # Margin for better interactions with hand tracking module
+        # Margin for better interactions with hand tracking module and color processing module
         self.frame_margin = 70
         # Image from camera source
         self.image = None
@@ -39,16 +39,14 @@ class Game:
         self.sound_red = pygame.mixer.Sound("resources/Audio/red.ogg")
         self.sound_yellow = pygame.mixer.Sound("resources/Audio/yellow.ogg")
         self.sound_lose = pygame.mixer.Sound("resources/Audio/error.wav")
-        # Font
+        # Font file loading and size
         self.gameplay_font_dir = 'resources/Fonts/Gameplay.ttf'
         self.font = pygame.font.Font(self.gameplay_font_dir, 20)
-        # Creating the sprites
+        # Creating the necessary sprites
         self.blue = Blue()
         self.red = Red()
         self.green = Green()
         self.yellow = Yellow()
-        # Sprite group
-        self.moving_sprites = pygame.sprite.Group()
         # Create an instance of the hand tracking module
         self.detector = HandDetector(max_hands=max_hands)
         # Detector variables
@@ -61,10 +59,10 @@ class Game:
         self.clock = pygame.time.Clock()
         # Cursor from pygame to access the functions of it
         self.cursor = cursor
-        # Variables for cursor position
+        # Variables for cursor position (Init at center of the screen)
         self.x_relative = self.wScreen / 2
         self.y_relative = self.hScreen / 2
-        # For fps information
+        # Variables for fps information
         self.start = 0
         self.end = 0
         self.total_time = 0
@@ -72,8 +70,8 @@ class Game:
         self.paused = False
         self.limiter = 0
         self.limit = 20
-        # Creating the sprites and groups
-        self.moving_sprites = pygame.sprite.Group()
+        # Creating the sprites and grouped by layers to better display the images
+        self.moving_sprites = pygame.sprite.LayeredUpdates()
         self.moving_sprites.add(self.blue, self.red, self.green, self.yellow)
         # Variable to create and show a new pattern
         self.pattern = []
@@ -84,17 +82,19 @@ class Game:
         self.playing_pattern = False
         self.add_new_pattern = True
         self.show_new_pattern = True
-        # Color processing
+        # Color processing module variables for each color
         self.green_processing = ColorProcessingModule(ColorValues.LOW_GREEN.value, ColorValues.HIGH_GREEN.value)
         self.red_processing = ColorProcessingModule(ColorValues.LOW_RED.value, ColorValues.HIGH_RED.value)
         self.yellow_processing = ColorProcessingModule(ColorValues.LOW_YELLOW.value, ColorValues.HIGH_YELLOW.value)
         self.blue_processing = ColorProcessingModule(ColorValues.LOW_BLUE.value, ColorValues.HIGH_BLUE.value)
 
+    # Verifies that the pattern given by the user (at that moment) is equal to the one generated
     def check_pattern(self):
         if self.player_pattern != self.pattern[:len(self.player_pattern)]:
             return False
         return True
 
+    # Function to handle pauses needed by the game without the need to block the main thread
     def pause_program(self):
         self.limiter += 1
         if self.limiter == self.limit:
@@ -103,11 +103,15 @@ class Game:
         return True
 
     def start_game(self, cap):
+        # Grab the next frame from camera and return a boolean that returns true if the frame is available
+        # and the image array vector captured
         success, self.image = cap.read()
         # Flip the image horizontally for later selfie-view display
         self.image = cv2.flip(self.image, 1)
+        # Get the contours of the blue color detected in the image captured
         self.image, bitwise_color, _, x_medium, y_medium = self.blue_processing.generate_contour(self.image)
 
+        # Break program if image could not be read
         if not success:
             print("Ignoring empty camera frame.")
             # If loading a video, use 'break' instead of 'continue'.
@@ -125,9 +129,10 @@ class Game:
         self.landmark_list, self.bbox = self.detector.find_position(self.image, draw=True)
         self.screen.fill((0, 0, 0))
         self.moving_sprites.draw(self.screen)
-        score_text = self.font.render('Score: ' + str(self.score), True, (255, 255, 255))
-        text_width, _ = score_text.get_size()
-        self.screen.blit(score_text, (((self.wScreen // 2) - (text_width // 2)), 50))
+        score_text = self.font.render(str(self.score), True, (255, 255, 255))
+        text_width, text_height = score_text.get_size()
+        self.screen.blit(score_text,
+                         (((self.wScreen // 2) - (text_width // 2)), ((self.hScreen // 2) - (text_height // 2))))
 
         # Recalculate paused flag
         if self.paused:
@@ -136,15 +141,19 @@ class Game:
         # Clean channels and color blocks
         if not self.channel_blue.get_busy():
             self.blue.change_color(False)
+            self.moving_sprites.change_layer(self.blue, 1)
             self.channel_blue.stop()
         if not self.channel_red.get_busy():
             self.red.change_color(False)
+            self.moving_sprites.change_layer(self.red, 1)
             self.channel_red.stop()
         if not self.channel_green.get_busy():
             self.green.change_color(False)
+            self.moving_sprites.change_layer(self.green, 1)
             self.channel_green.stop()
         if not self.channel_yellow.get_busy():
             self.yellow.change_color(False)
+            self.moving_sprites.change_layer(self.yellow, 1)
             self.channel_yellow.stop()
 
         # Restart variables for new pattern and flag for losing screen
@@ -184,30 +193,34 @@ class Game:
                 self.limit = 10
             # Clear channels and sprites of buttons
             self.blue.change_color(False)
+            self.moving_sprites.change_layer(self.blue, 1)
             self.channel_blue.stop()
             self.red.change_color(False)
+            self.moving_sprites.change_layer(self.red, 1)
             self.channel_red.stop()
             self.green.change_color(False)
+            self.moving_sprites.change_layer(self.green, 1)
             self.channel_green.stop()
             self.yellow.change_color(False)
+            self.moving_sprites.change_layer(self.yellow, 1)
             self.channel_yellow.stop()
             self.paused = self.pause_program()
             # Start the sequence show
             if number_color == 1:
                 self.green.change_color(True)
-                # if not self.channel_green.get_busy():
+                self.moving_sprites.change_layer(self.green, 2)
                 self.channel_green.play(self.sound_green)
-            if number_color == 2:
+            elif number_color == 2:
                 self.red.change_color(True)
-                # if not self.channel_red.get_busy():
+                self.moving_sprites.change_layer(self.red, 2)
                 self.channel_red.play(self.sound_red)
-            if number_color == 3:
+            elif number_color == 3:
                 self.yellow.change_color(True)
-                # if not self.channel_yellow.get_busy():
+                self.moving_sprites.change_layer(self.yellow, 2)
                 self.channel_yellow.play(self.sound_yellow)
-            if number_color == 4:
+            elif number_color == 4:
                 self.blue.change_color(True)
-                # if not self.channel_blue.get_busy():
+                self.moving_sprites.change_layer(self.blue, 2)
                 self.channel_blue.play(self.sound_blue)
 
             self.pattern_copy.pop(0)
@@ -225,13 +238,15 @@ class Game:
 
             if 150 < area < 1080:
                 self.fingers = self.detector.fingers_up()
-                if not self.paused and self.fingers[1] and self.fingers[2]:
+                if not self.paused and self.fingers[1] and self.fingers[2] and collision_circle_check(
+                        (self.wScreen // 2, self.hScreen // 2), 295, (self.x_relative, self.y_relative)):
                     #     GREEN
-                    if collision_box_check(self.green.rect.topleft, self.green.rect.size,
+                    if collision_box_check(self.green.relative_pos, self.green.size,
                                            (self.x_relative, self.y_relative)):
                         self.limit = 20
                         self.paused = self.pause_program()
                         self.green.change_color(True)
+                        self.moving_sprites.change_layer(self.green, 2)
                         self.player_pattern.append(1)
                         self.player_pattern_is_good = self.check_pattern()
                         if self.player_pattern_is_good:
@@ -242,11 +257,12 @@ class Game:
                                 self.channel_green.play(self.sound_lose)
 
                     #     RED
-                    elif collision_box_check(self.red.rect.topleft, self.red.rect.size,
+                    elif collision_box_check(self.red.relative_pos, self.red.size,
                                              (self.x_relative, self.y_relative)):
                         self.limit = 20
                         self.paused = self.pause_program()
                         self.red.change_color(True)
+                        self.moving_sprites.change_layer(self.red, 2)
                         self.player_pattern.append(2)
                         self.player_pattern_is_good = self.check_pattern()
                         if self.player_pattern_is_good:
@@ -257,11 +273,12 @@ class Game:
                                 self.channel_red.play(self.sound_lose)
 
                     #     YELLOW
-                    elif collision_box_check(self.yellow.rect.topleft, self.yellow.rect.size,
+                    elif collision_box_check(self.yellow.relative_pos, self.yellow.size,
                                              (self.x_relative, self.y_relative)):
                         self.limit = 20
                         self.paused = self.pause_program()
                         self.yellow.change_color(True)
+                        self.moving_sprites.change_layer(self.yellow, 2)
                         self.player_pattern.append(3)
                         self.player_pattern_is_good = self.check_pattern()
                         if self.player_pattern_is_good:
@@ -272,11 +289,12 @@ class Game:
                                 self.channel_yellow.play(self.sound_lose)
 
                     #     BLUE
-                    elif collision_box_check(self.blue.rect.topleft, self.blue.rect.size,
+                    elif collision_box_check(self.blue.relative_pos, self.blue.size,
                                              (self.x_relative, self.y_relative)):
                         self.limit = 20
                         self.paused = self.pause_program()
                         self.blue.change_color(True)
+                        self.moving_sprites.change_layer(self.blue, 2)
                         self.player_pattern.append(4)
                         self.player_pattern_is_good = self.check_pattern()
                         if self.player_pattern_is_good:
