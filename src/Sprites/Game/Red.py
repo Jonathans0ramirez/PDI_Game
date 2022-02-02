@@ -2,12 +2,13 @@ import pygame
 
 
 class Red(pygame.sprite.Sprite):
-    def __init__(self, pos_x=300, pos_y=150):
+    def __init__(self, pos_x=0, pos_y=0, layer=1):
         super().__init__()
-        self.red = (100, 0, 0)
-        self.red_light = (255, 0, 0)
-        self.image = pygame.Surface([250, 250])
-        self.image.fill(self.red)
+        self._layer = layer
+        self.relative_pos = (306, 46)
+        self.size = (289, 289)
+        self.image = pygame.image.load('resources/Images/red.png')
+
         self.rect = self.image.get_rect()
         self.rect.topleft = [pos_x, pos_y]
         self.color_animation = None
@@ -17,7 +18,9 @@ class Red(pygame.sprite.Sprite):
 
     def update(self, *args):
         if self.color_animation:
-            self.image.fill(self.red_light)
+            self.image = pygame.image.load('resources/Images/red_light.png')
+            self._layer = 2
         else:
-            self.image.fill(self.red)
+            self.image = pygame.image.load('resources/Images/red.png')
+            self._layer = 1
 
