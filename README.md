@@ -1,8 +1,15 @@
 # PDI_Game
 
 ## How to install
+** You'll need to make sure you have python and pip installed **
 
-1. Install pipenv if not present
+1. Clone the repository
+>   `git clone https://github.com/Jonathans0ramirez/PDI_Game.git`
+
+2. Change into the root directory
+>   `cd PDI_Game`
+
+4. Install pipenv if not present
 >  `pip install --user pipenv`
 
 2.  Activate the Pipenv shell
