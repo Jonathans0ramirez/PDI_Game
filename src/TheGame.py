@@ -54,19 +54,26 @@ def main():
                                                                                        interactor.in_game,
                                                                                        interactor.in_game_over,
                                                                                        pygame.mixer.music)
+        # Execute menu screen
         if interactor.in_menu == ApplicationState.RUNNING:
+            # Reset score variable
             interactor.score = 0
             interactor.in_menu = menu.start_menu(cap)
+            # Variable to define whether to run the Game screen
             interactor.in_game = ApplicationState.BREAK if \
                 interactor.in_menu == ApplicationState.RUNNING else \
                 ApplicationState.RUNNING
+        # Execute game screen
         elif interactor.in_game == ApplicationState.RUNNING:
             interactor.in_game, interactor.score = game.start_game(cap)
+            # Variable to define whether to run the GameOver screen
             interactor.in_game_over = ApplicationState.BREAK if \
                 interactor.in_game == ApplicationState.RUNNING else \
                 ApplicationState.RUNNING
+        # Execute GameOver screen
         elif interactor.in_game_over == ApplicationState.RUNNING:
             interactor.in_game_over = game_over.lose_screen(cap, interactor.score)
+            # Restart application states when restart is returned from  screen
             if interactor.in_game_over == ApplicationState.RESTART:
                 interactor.in_menu = ApplicationState.RUNNING
                 interactor.in_game = ApplicationState.BREAK
@@ -74,6 +81,7 @@ def main():
                 pygame.mixer.music.load('resources/Audio/Cyberpunk Moonlight Sonata v2.mp3')
                 pygame.mixer.music.play(loops=-1)
                 pygame.mixer.music.set_volume(1)
+        # Finish execution
         if (interactor.in_menu == ApplicationState.STOP) or \
                 (interactor.in_game == ApplicationState.STOP) or \
                 (interactor.in_game_over == ApplicationState.STOP) or \
@@ -90,14 +98,17 @@ def main():
 
 
 def handle_music(in_menu, in_game, in_game_over, pygame_music):
+    # Lower the music volume when entering the game screen
     if in_menu == ApplicationState.MUSIC_BREAK:
         pygame_music.set_volume(0.30)
         in_menu = ApplicationState.BREAK
+    #  Play GameOver music
     if in_game == ApplicationState.MUSIC_BREAK:
         pygame_music.load('resources/Audio/game_over_sound.ogg')
         pygame_music.play(loops=-1)
         pygame_music.set_volume(1)
         in_game = ApplicationState.BREAK
+    # Stops music
     if in_game_over == ApplicationState.MUSIC_BREAK:
         pygame_music.set_volume(0)
         in_game_over = ApplicationState.BREAK
