@@ -9,17 +9,17 @@
 2. Change into the root directory
 >   `cd PDI_Game`
 
-4. Install pipenv if not present
->  `pip install --user pipenv`
+3. Install pipenv if not present
+>   `pip install --user pipenv`
 
-2.  Activate the Pipenv shell
+4. Activate the Pipenv shell
 >   `pipenv shell`
 
-3. Install dependencies
->  `pipenv install`
+5. Install dependencies
+>   `pipenv install`
   
-3.  Run application
->  `Use an IDE to run the TheGame.py file`
+6. Run application
+>   `Use an IDE to run the TheGame.py file`
 
 ## How to play
 
